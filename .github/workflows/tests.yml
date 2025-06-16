@@ -3,7 +3,7 @@ name: Docker Compose Test
 on:
   push:
     branches:
-      - master
+      - ubicloud-benchmark
       - '*.x'
   pull_request:
 
@@ -12,20 +12,20 @@ permissions:
 
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
 
     strategy:
       fail-fast: true
       matrix:
-        include:
-          - php: '8.2'
-            laravel: 12
-          - php: '8.3'
-            laravel: 12
-          - php: '8.4'
-            laravel: 12
-
-    name: PHP ${{ matrix.php }} - Laravel ${{ matrix.laravel }}
+        runner:
+          - 'ubuntu-22.04'
+          - 'ubicloud-standard-4'
+          - 'ubicloud-standard-8'
+          - 'ubicloud-standard-16'
+          - 'ubicloud-premium-4'
+          - 'ubicloud-premium-8'
+          - 'ubicloud-premium-16'
+    name: ${{ matrix.runner }}
 
     steps:
 
@@ -37,14 +37,16 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php }}
+          php-version: 8.4
           extensions: dom, curl, libxml, mbstring, zip, fileinfo
           ini-values: error_reporting=E_ALL
           tools: composer:v2
           coverage: none
+        env:
+          runner:  ${{ matrix.runner == 'ubuntu-22.04' && 'github' || 'ubicloud' }}
 
       - name: Create a new laravel application
-        run: composer create-project laravel/laravel app "${{ matrix.laravel }}.x" --remove-vcs --no-interaction --prefer-dist
+        run: composer create-project laravel/laravel app "12.x" --remove-vcs --no-interaction --prefer-dist
 
       - name: Link Sail Repository
         run: |
@@ -55,7 +57,7 @@ jobs:
 
       - name: Install Sail into App
         run: |
-          php artisan sail:install --php=${{ matrix.php }} --no-interaction
+          php artisan sail:install --php=8.4 --no-interaction
           php artisan sail:publish --no-interaction
         working-directory: app
 
